@@ -5,6 +5,10 @@ import time
 
 app = Flask(__name__)
 
+@app.route('/ping')
+def ping():
+    return jsonify({'status': 'ok'})
+
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = 'https://halloekes.github.io'
@@ -76,6 +80,20 @@ def housenumbers():
         matches = re.findall(r'<option value="(\d+)"[^>]*>([^<]+)</option>', response2.text)
         result = [{'nr': nr, 'standortId': int(sid)} for sid, nr in matches]
         return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/ical')
+def ical():
+    standort = request.args.get('standort')
+    von = request.args.get('von')
+    bis = request.args.get('bis')
+    if not standort or not von or not bis:
+        return jsonify({'error': 'Missing parameters standort, von, bis'}), 400
+    try:
+        url = f'https://stadtplan.dresden.de/project/cardo3Apps/IDU_DDStadtplan/abfall/ical.ashx?STANDORT={standort}&DATUM_VON={von}&DATUM_BIS={bis}'
+        response = requests.get(url, timeout=30)
+        return response.text, 200, {'Content-Type': 'text/calendar; charset=utf-8'}
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
